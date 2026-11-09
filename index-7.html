@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f5f5b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="معوزك">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>معوزك</title>
+<style>
+  :root {
+    --ink: #1d2433;
+    --muted: #5d6676;
+    --rule: #c5cad4;
+    --paper: #ffffff;
+    --desk: #e9ecf1;
+    --accent: #1f5f5b;
+    --accent-dark: #174a47;
+    --focus: #e2a43b;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--desk);
+    color: var(--ink);
+    font-family: "Noto Naskh Arabic", "Segoe UI", Tahoma, "Geeza Pro", "Arial", sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  /* شريط الأدوات */
+  .toolbar {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 14px 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .toolbar .spacer { flex: 1; }
+  button, .toggle {
+    font: inherit;
+    font-size: 15px;
+    border-radius: 6px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-dark); }
+  button.confirming { background: #fff3e0; border-color: #c77a00; color: #7a4a00; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; user-select: none; }
+  .toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+  /* ورقة الفاتورة */
+  .sheet {
+    width: 210mm;
+    max-width: 100%;
+    min-height: 270mm;
+    margin: 12px auto 40px;
+    background: var(--paper);
+    padding: 16mm 14mm;
+    box-shadow: 0 1px 2px rgba(20, 30, 50, .12), 0 8px 28px rgba(20, 30, 50, .08);
+  }
+
+  input, textarea {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    background: transparent;
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 4px;
+  }
+  input::placeholder, textarea::placeholder { color: #aab0bc; }
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
+  .shop {
+    font-size: 26px;
+    font-weight: 700;
+    text-align: center;
+    padding-bottom: 4px;
+  }
+  .doc-title {
+    text-align: center;
+    font-size: 20px;
+    letter-spacing: .02em;
+    color: var(--muted);
+    margin: 0 0 18px;
+    padding-bottom: 12px;
+    border-bottom: 3px double var(--ink);
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 22px;
+    margin-bottom: 18px;
+  }
+  .field {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    border-bottom: 1px solid var(--ink);
+    padding: 4px 0;
+  }
+  .field.wide { grid-column: 1 / -1; }
+  .field label { font-weight: 700; white-space: nowrap; }
+  .field input { flex: 1; min-width: 0; }
+  .field.client input { font-size: 19px; }
+  .hijri { white-space: nowrap; color: var(--muted); }
+
+  /* الجدول */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  th, td {
+    border: 1px solid var(--ink);
+    padding: 0;
+  }
+  th {
+    background: #eef0f4;
+    font-weight: 700;
+    padding: 8px;
+    text-align: center;
+  }
+  td input { text-align: right; padding: 9px 8px; }
+  td.qty input { text-align: center; }
+  td.price input { text-align: center; }
+  col.c-qty { width: 16%; }
+  col.c-price { width: 15%; }
+  col.c-total { width: 17%; }
+  col.c-act { width: 34px; }
+  td.line-total { text-align: center; padding: 9px 4px; background: #fafbfc; font-variant-numeric: tabular-nums; }
+
+  .price-col { display: none; }
+  table.with-price .price-col { display: table-cell; }
+  table.with-price col.price-col { display: table-column; }
+
+  th.act, td.act { border: 0; background: transparent; }
+  td.act { text-align: center; }
+  .del {
+    border: 0;
+    background: transparent;
+    color: #a3a9b5;
+    padding: 4px 6px;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .del:hover { color: #b3261e; border: 0; }
+
+  tfoot td {
+    background: #f6f7f9;
+    font-weight: 700;
+    padding: 9px 8px;
+    text-align: center;
+  }
+  tfoot td.label { text-align: left; }
+  tfoot td.blank { border: 0; background: transparent; }
+
+  .add-row { margin-top: 10px; }
+
+  .notes { margin-top: 20px; }
+  .notes label { font-weight: 700; display: block; margin-bottom: 2px; }
+  .notes textarea {
+    border: 1px solid var(--rule);
+    min-height: 70px;
+    resize: vertical;
+  }
+
+  [hidden] { display: none !important; }
+
+  .tabs {
+    display: flex;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--paper);
+  }
+  .tabs button { border: 0; border-radius: 0; }
+  .tabs button.on { background: var(--ink); color: #fff; }
+  .status { font-size: 14px; color: var(--accent); }
+  .status.warn { color: #9a5b00; }
+
+  .hint { color: var(--muted); font-size: 14px; margin: 0 0 10px; }
+  .filter { margin-bottom: 10px; }
+  .filter input {
+    border: 1px solid var(--rule);
+    background: #fff;
+    max-width: 320px;
+  }
+  table.sum-table { table-layout: auto; }
+  .sum-table td { padding: 8px; text-align: right; }
+  .sum-table td.num { text-align: center; }
+  .sum-table th.w-num, .sum-table td.num { width: 18%; }
+  .sum-table td.empty { text-align: center; color: var(--muted); padding: 18px 8px; }
+  .section-title { font-size: 18px; font-weight: 700; margin: 28px 0 8px; }
+  .small-btn { padding: 3px 10px; font-size: 14px; margin-inline-start: 4px; }
+  .actions-cell { white-space: nowrap; text-align: center !important; width: 1%; }
+  .backup { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .backup input[type=file] { display: none; }
+
+  .name-picker {
+    position: absolute; z-index: 100; display: none;
+    background: #fff; border: 1px solid var(--rule); border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    direction: rtl; text-align: right;
+  }
+  .name-picker div { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; font-size: 16px; border-bottom: 1px solid #eef0f4; cursor: pointer; }
+  .name-picker .pp { color: var(--muted); font-size: 14px; }
+  .name-picker div:last-child { border-bottom: 0; }
+  .name-picker div:hover, .name-picker div:active { background: #eef3f1; }
+  @media print { .name-picker { display: none !important; } }
+
+  .saved-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 8px; }
+  .saved-filter .fld { display: flex; flex-direction: column; gap: 2px; font-size: 14px; color: var(--muted); }
+  .saved-filter .fld.grow { flex: 1 1 160px; }
+  .saved-filter input { border: 1px solid var(--rule); background: #fff; padding: 6px 8px; width: 100%; }
+  .add-name { display: flex; gap: 8px; align-items: center; max-width: 420px; }
+  .add-name input { border: 1px solid var(--rule); background: #fff; flex: 1; min-width: 0; }
+  .add-name input.price-in { flex: 0 0 96px; text-align: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 2px;
+    border: 1px solid var(--rule); border-radius: 999px;
+    background: #fff; font-size: 15px; padding: 2px 12px 2px 4px;
+  }
+  .chip input {
+    border: 0; background: #f3f5f8; border-radius: 999px;
+    width: 64px; padding: 3px 6px; margin: 0 6px; font-size: 14px; text-align: center;
+  }
+  .chip button { border: 0; background: transparent; color: #a3a9b5; padding: 0 6px; font-size: 18px; line-height: 1.2; }
+  .chip button:hover { color: #b3261e; border: 0; }
+
+  @media print {
+    .no-print { display: none !important; }
+  }
+
+  @media (max-width: 600px) {
+    body { font-size: 16px; }
+    .sheet { padding: 12px 8px; min-height: 0; }
+    .meta { grid-template-columns: 1fr; }
+    col.c-qty { width: 22%; }
+    col.c-price { width: 19%; }
+    col.c-total { width: 21%; }
+    table.with-price col.c-qty { width: 14%; }
+    th { padding: 8px 2px; }
+  }
+
+  /* الطباعة */
+  @page { size: A4; margin: 10mm; }
+  @media print {
+    body { background: #fff; font-size: 16px; }
+    .toolbar, .add-row, .act, .notes.empty { display: none !important; }
+    .sheet { box-shadow: none; margin: 0; padding: 0; width: auto; min-height: 0; }
+    input::placeholder, textarea::placeholder { color: transparent; }
+    .notes textarea { border: 0; padding: 0; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="tabs" role="group" aria-label="العرض">
+    <button type="button" id="tabInvoice" class="on">الفاتورة</button>
+    <button type="button" id="tabSummary">ملخص النقشات</button>
+  </div>
+  <button type="button" class="primary inv-only" id="saveBtn">حفظ الفاتورة</button>
+  <button type="button" class="inv-only" id="newBtn">فاتورة جديدة</button>
+  <button type="button" id="printBtn">طباعة / حفظ PDF</button>
+  <button type="button" class="inv-only" id="waBtn">مشاركة واتساب</button>
+  <button type="button" id="installBtn" hidden>تثبيت التطبيق</button>
+  <span class="status" id="status" role="status"></span>
+  <span class="spacer"></span>
+  <label class="toggle inv-only"><input type="checkbox" id="priceToggle"> إضافة عمود السعر (اختياري)</label>
+</div>
+
+<main class="sheet" id="sheet">
+  <input class="shop" id="shop" type="text" placeholder="اسم المنشأة (اختياري)" aria-label="اسم المنشأة">
+  <p class="doc-title">فاتورة</p>
+
+  <section class="meta">
+    <div class="field client wide">
+      <label for="client">اسم العميل:</label>
+      <input id="client" type="text" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="invNo">رقم الفاتورة:</label>
+      <input id="invNo" type="text" inputmode="numeric" value="1" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="invDate">التاريخ:</label>
+      <input id="invDate" type="date">
+      <span class="hijri" id="hijri"></span>
+    </div>
+  </section>
+
+  <table id="tbl">
+    <colgroup>
+      <col class="c-qty"><col><col><col class="c-price price-col"><col class="c-total price-col"><col class="c-act">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>العدد</th>
+        <th>اسم النقشة</th>
+        <th>نوع النقشة</th>
+        <th class="price-col">السعر</th>
+        <th class="price-col">الإجمالي</th>
+        <th class="act"></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+    <tfoot>
+      <tr>
+        <td id="totalQty">0</td>
+        <td colspan="2" class="label">إجمالي العدد</td>
+        <td class="price-col label">الإجمالي</td>
+        <td class="price-col" id="totalPrice">0</td>
+        <td class="blank act"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <button class="add-row" id="addBtn">+ إضافة سطر</button>
+
+  <section class="notes" id="notesBox">
+    <label for="notes">ملاحظات</label>
+    <textarea id="notes"></textarea>
+  </section>
+</main>
+
+<main class="sheet" id="summaryView" hidden>
+  <p class="doc-title" style="margin-top:0">ملخص النقشات</p>
+  <p class="hint" id="sumHint"></p>
+
+  <div class="filter no-print">
+    <input id="filter" type="text" placeholder="بحث باسم النقشة" autocomplete="off" aria-label="بحث باسم النقشة">
+  </div>
+
+  <table class="sum-table">
+    <thead>
+      <tr>
+        <th>اسم النقشة</th>
+        <th class="w-num">إجمالي العدد</th>
+        <th class="w-num">عدد الفواتير</th>
+        <th class="w-num">إجمالي السعر</th>
+      </tr>
+    </thead>
+    <tbody id="sumBody"></tbody>
+    <tfoot>
+      <tr>
+        <td class="label" style="text-align:left">الإجمالي</td>
+        <td id="sumTotalQty">0</td>
+        <td id="sumTotalInv">0</td>
+        <td id="sumTotalPrice">0</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="no-print">
+    <p class="section-title">الفواتير المحفوظة</p>
+    <div class="saved-filter">
+      <div class="fld grow">
+        <label for="savedSearch">بحث (اسم العميل أو رقم الفاتورة)</label>
+        <input id="savedSearch" type="search" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label for="dateFrom">من تاريخ</label>
+        <input id="dateFrom" type="date">
+      </div>
+      <div class="fld">
+        <label for="dateTo">إلى تاريخ</label>
+        <input id="dateTo" type="date">
+      </div>
+      <button type="button" id="clearFilter">مسح الفلتر</button>
+    </div>
+    <p class="hint" id="savedCount"></p>
+    <table class="sum-table">
+      <thead>
+        <tr>
+          <th class="w-num">رقم الفاتورة</th>
+          <th>العميل</th>
+          <th class="w-num">التاريخ</th>
+          <th class="w-num">العدد</th>
+          <th class="actions-cell"></th>
+        </tr>
+      </thead>
+      <tbody id="savedBody"></tbody>
+    </table>
+
+    <p class="section-title">أسماء النقشات المحفوظة</p>
+    <p class="hint">هذه الأسماء تظهر في قائمة الاختيار عند الضغط على خانة «اسم النقشة». يُضاف اسم النقشة هنا تلقائياً عند حفظ الفاتورة. اكتب سعر القطعة بجانب كل اسم ليظهر تلقائياً في الفاتورة عند اختيار النقشة.</p>
+    <div class="add-name">
+      <input id="newName" type="text" placeholder="اسم نقشة جديدة" autocomplete="off" aria-label="اسم نقشة جديدة">
+      <input id="newPrice" class="price-in" type="text" inputmode="decimal" placeholder="السعر" autocomplete="off" aria-label="سعر القطعة">
+      <button type="button" id="addNameBtn">إضافة</button>
+    </div>
+    <div class="chips" id="nameChips"></div>
+
+    <p class="section-title">نسخة احتياطية</p>
+    <div class="backup">
+      <button type="button" id="exportBtn">تصدير الفواتير (ملف)</button>
+      <label class="toggle" for="importFile" style="cursor:pointer">استيراد من ملف</label>
+      <input type="file" id="importFile" accept=".json,application/json">
+    </div>
+
+    <p class="section-title">Google Drive</p>
+    <p class="hint">مزامنة الفواتير وأسماء النقشات بين أجهزتك عبر ملف في حسابك على Google Drive.</p>
+    <div class="backup">
+      <button type="button" id="gConnectBtn">ربط Google Drive</button>
+      <button type="button" id="gSyncBtn" hidden>مزامنة الآن</button>
+    </div>
+    <p class="hint" id="gStatus" role="status"></p>
+  </div>
+</main>
+
+<datalist id="typesList"></datalist>
+
+<script>
+// ============================================================
+// إعداد المزامنة مع Google Drive
+// ضع هنا معرّف العميل (Client ID) من Google Cloud Console،
+// مثال: '1234567890-abcdefg.apps.googleusercontent.com'
+// اتركه فارغاً لتعطيل المزامنة.
+var GOOGLE_CLIENT_ID = '';
+// ============================================================
+(function () {
+  var rows = document.getElementById('rows');
+  var tbl = document.getElementById('tbl');
+  var START_ROWS = 10;
+
+  // تحويل الأرقام العربية إلى إنجليزية للحساب
+  function toNum(v) {
+    if (!v) return 0;
+    var map = { '٠':0,'١':1,'٢':2,'٣':3,'٤':4,'٥':5,'٦':6,'٧':7,'٨':8,'٩':9 };
+    var s = String(v).replace(/[٠-٩]/g, function (d) { return map[d]; })
+                     .replace(/[٫,]/g, '.').replace(/[^\d.\-]/g, '');
+    var n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+  function fmt(n) {
+    return (Math.round(n * 100) / 100).toLocaleString('en-US');
+  }
+
+  function makeCell(cls, placeholder, listId, inputmode) {
+    var td = document.createElement('td');
+    if (cls) td.className = cls;
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.autocomplete = 'off';
+    if (listId) inp.setAttribute('list', listId);
+    if (inputmode) inp.inputMode = inputmode;
+    td.appendChild(inp);
+    return td;
+  }
+
+  function addRow() {
+    var tr = document.createElement('tr');
+    var qty = makeCell('qty', '', null, 'decimal');
+    var name = makeCell('name', '', null);
+    var type = makeCell('type', '', 'typesList');
+    var price = makeCell('price price-col', '', null, 'decimal');
+    var total = document.createElement('td');
+    total.className = 'line-total price-col';
+    var act = document.createElement('td');
+    act.className = 'act';
+    var del = document.createElement('button');
+    del.className = 'del';
+    del.type = 'button';
+    del.textContent = '×';
+    del.title = 'حذف السطر';
+    del.setAttribute('aria-label', 'حذف السطر');
+    del.addEventListener('click', function () {
+      tr.remove();
+      if (!rows.children.length) addRow();
+      refresh();
+    });
+    act.appendChild(del);
+    tr.append(qty, name, type, price, total, act);
+    rows.appendChild(tr);
+    return tr;
+  }
+
+  function refresh() {
+    var q = 0, p = 0;
+    var names = {}, types = {};
+    catalog.forEach(function (n) { names[n] = 1; });
+    Object.keys(knownTypes).forEach(function (t) { types[t] = 1; });
+    Array.prototype.forEach.call(rows.children, function (tr) {
+      var qv = tr.querySelector('.qty input').value.trim();
+      var pv = tr.querySelector('.price input').value.trim();
+      q += toNum(qv);
+      var lt = tr.querySelector('.line-total');
+      if (qv && pv) {
+        var tot = toNum(qv) * toNum(pv);
+        p += tot;
+        lt.textContent = fmt(tot);
+      } else {
+        lt.textContent = '';
+      }
+      var n = tr.querySelector('.name input').value.trim();
+      var t = tr.querySelector('.type input').value.trim();
+      if (n) names[n] = 1;
+      if (t) types[t] = 1;
+    });
+    document.getElementById('totalQty').textContent = fmt(q);
+    document.getElementById('totalPrice').textContent = fmt(p);
+    nameOptions = Object.keys(names).sort(function (a, b) { return a.localeCompare(b, 'ar'); });
+    if (pickerInput) renderPicker(pickerInput.value);
+    fillList('typesList', types);
+  }
+  function fillList(id, obj) {
+    var dl = document.getElementById(id);
+    dl.innerHTML = '';
+    Object.keys(obj).sort(function (a, b) { return a.localeCompare(b, 'ar'); }).forEach(function (k) {
+      var o = document.createElement('option');
+      o.value = k;
+      dl.appendChild(o);
+    });
+  }
+
+  rows.addEventListener('input', refresh);
+
+  // ===== قائمة النقشات المنسدلة عند الضغط على خانة «اسم النقشة» =====
+  var nameOptions = [];
+  var pickerInput = null;
+  var picker = document.createElement('div');
+  picker.className = 'name-picker';
+  picker.setAttribute('role', 'listbox');
+  document.body.appendChild(picker);
+
+  function hidePicker() { picker.style.display = 'none'; }
+
+  function renderPicker(filter) {
+    if (!pickerInput) return;
+    var f = norm(filter).toLowerCase();
+    var list = nameOptions.filter(function (n) {
+      return !f || n.toLowerCase().indexOf(f) > -1;
+    });
+    picker.innerHTML = '';
+    if (!list.length) { hidePicker(); return; }
+    list.forEach(function (n) {
+      var d = document.createElement('div');
+      d.appendChild(el('span', '', n));
+      var pr = getPrice(n);
+      if (pr) d.appendChild(el('span', 'pp', pr));
+      d.setAttribute('role', 'option');
+      d.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      d.addEventListener('click', function () { pickName(n); });
+      picker.appendChild(d);
+    });
+    var r = pickerInput.getBoundingClientRect();
+    var w = Math.max(r.width, 200);
+    var sx = window.pageXOffset, sy = window.pageYOffset;
+    var left = Math.min(r.left + sx, sx + document.documentElement.clientWidth - w - 4);
+    left = Math.max(left, sx + 4);
+    picker.style.width = w + 'px';
+    picker.style.left = left + 'px';
+    picker.style.top = (r.bottom + sy + 2) + 'px';
+    picker.style.display = 'block';
+    var h = picker.offsetHeight;
+    if (r.bottom + h > window.innerHeight && r.top > h) {
+      picker.style.top = (r.top + sy - h - 2) + 'px';
+    }
+  }
+
+  function pickName(n) {
+    var inp = pickerInput;
+    if (!inp) return;
+    inp.value = n;
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    fillPriceFor(inp.closest('tr'), true);
+    var next = inp.closest('tr').querySelector('.type input');
+    if (next) next.focus(); else inp.blur();
+    hidePicker();
+  }
+
+  // يعبّئ سعر القطعة من قائمة الأسعار المحفوظة
+  function fillPriceFor(tr, force) {
+    var n = norm(tr.querySelector('.name input').value);
+    var pi = tr.querySelector('.price input');
+    var sp = n ? getPrice(n) : undefined;
+    if (sp !== undefined && (force || !pi.value.trim())) {
+      pi.value = sp;
+      refresh();
+    }
+  }
+  // أول سعر يُكتب لنقشة بلا سعر محفوظ يُحفظ تلقائياً
+  function rememberPrice(tr) {
+    var n = norm(tr.querySelector('.name input').value);
+    var v = norm(tr.querySelector('.price input').value);
+    if (n && v && getPrice(n) === undefined) {
+      addName(n);
+      setPrice(n, v);
+      saveNames();
+      refresh();
+    }
+  }
+  rows.addEventListener('change', function (e) {
+    var t = e.target;
+    var tr = t.closest ? t.closest('tr') : null;
+    if (!tr) return;
+    if (t.closest('.name')) fillPriceFor(tr, false);
+    else if (t.closest('.price')) rememberPrice(tr);
+  });
+
+  function isNameInput(t) { return t && t.matches && t.matches('.name input'); }
+
+  rows.addEventListener('focusin', function (e) {
+    if (isNameInput(e.target)) { pickerInput = e.target; renderPicker(''); }
+  });
+  rows.addEventListener('click', function (e) {
+    if (isNameInput(e.target) && picker.style.display !== 'block') {
+      pickerInput = e.target;
+      renderPicker(e.target.value);
+    }
+  });
+  rows.addEventListener('input', function (e) {
+    if (isNameInput(e.target)) { pickerInput = e.target; renderPicker(e.target.value); }
+  });
+  rows.addEventListener('focusout', function (e) {
+    if (e.target === pickerInput) { pickerInput = null; hidePicker(); }
+  });
+  rows.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') hidePicker();
+  });
+  window.addEventListener('resize', function () {
+    if (pickerInput) renderPicker(pickerInput.value);
+  });
+
+  // Enter ينتقل إلى الحقل التالي، وفي آخر حقل يضيف سطراً جديداً
+  rows.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var inputs = Array.prototype.filter.call(
+      rows.querySelectorAll('input'),
+      function (i) { return i.offsetParent !== null; }
+    );
+    var idx = inputs.indexOf(e.target);
+    if (idx === inputs.length - 1) {
+      var tr = addRow();
+      tr.querySelector('input').focus();
+    } else if (idx > -1) {
+      inputs[idx + 1].focus();
+    }
+  });
+
+  document.getElementById('addBtn').addEventListener('click', function () {
+    addRow().querySelector('input').focus();
+  });
+
+  document.getElementById('priceToggle').addEventListener('change', function (e) {
+    tbl.classList.toggle('with-price', e.target.checked);
+  });
+
+  document.getElementById('printBtn').addEventListener('click', function () {
+    document.getElementById('notesBox').classList.toggle(
+      'empty', !document.getElementById('notes').value.trim()
+    );
+    window.print();
+  });
+
+  // فاتورة جديدة (بضغطتين لتفادي المسح بالخطأ)
+  var newBtn = document.getElementById('newBtn');
+  var armed = null;
+  newBtn.addEventListener('click', function () {
+    if (!armed) {
+      newBtn.textContent = 'اضغط مرة أخرى للتأكيد';
+      newBtn.classList.add('confirming');
+      armed = setTimeout(disarm, 3500);
+      return;
+    }
+    disarm();
+    var noEl = document.getElementById('invNo');
+    var cur = noEl.value.trim();
+    var next = /^[\d٠-٩]+$/.test(cur) ? String(toNum(cur) + 1) : '';
+    noEl.value = next;
+    document.getElementById('client').value = '';
+    document.getElementById('notes').value = '';
+    currentId = null;
+    rows.innerHTML = '';
+    for (var i = 0; i < START_ROWS; i++) addRow();
+    setToday();
+    refresh();
+    document.getElementById('client').focus();
+  });
+  function disarm() {
+    clearTimeout(armed);
+    armed = null;
+    newBtn.textContent = 'فاتورة جديدة';
+    newBtn.classList.remove('confirming');
+  }
+
+  function setToday() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    document.getElementById('invDate').value = d.getFullYear() + '-' + m + '-' + day;
+    updateHijri();
+  }
+
+  // التاريخ الهجري (أم القرى) بصيغة: 10 محرم 1448
+  function hijriText(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return '';
+    var d = new Date(+m[1], +m[2] - 1, +m[3], 12);
+    var locales = ['ar-SA-u-ca-islamic-umalqura-nu-latn', 'ar-SA-u-ca-islamic-nu-latn'];
+    for (var i = 0; i < locales.length; i++) {
+      try {
+        var o = {};
+        new Intl.DateTimeFormat(locales[i], { day: 'numeric', month: 'long', year: 'numeric' })
+          .formatToParts(d).forEach(function (p) { o[p.type] = p.value; });
+        if (o.day && o.month && o.year) return o.day + ' ' + o.month + ' ' + o.year;
+      } catch (e) {}
+    }
+    return '';
+  }
+  function updateHijri() {
+    var t = hijriText(document.getElementById('invDate').value);
+    document.getElementById('hijri').textContent = t ? '(' + t + ')' : '';
+  }
+  document.getElementById('invDate').addEventListener('input', updateHijri);
+  document.getElementById('invDate').addEventListener('change', updateHijri);
+
+  // ===== الحفظ وملخص النقشات =====
+  var KEY = 'invoice-maker-v1';
+  var canStore = true;
+  var memory = [];
+  var currentId = null;
+  var statusEl = document.getElementById('status');
+  var statusTimer = null;
+  var sheet = document.getElementById('sheet');
+  var summaryView = document.getElementById('summaryView');
+
+  function loadAll() {
+    try {
+      var s = window.localStorage.getItem(KEY);
+      var data = s ? JSON.parse(s) : [];
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      canStore = false;
+      return memory;
+    }
+  }
+  var invoices = loadAll();
+
+  // الفواتير القديمة كان «السعر» فيها هو إجمالي السطر؛ نحوّله إلى سعر القطعة
+  function migrateInv(inv) {
+    if (!inv || inv.unit) return inv;
+    if (inv.withPrice) {
+      (inv.rows || []).forEach(function (r) {
+        var qn = toNum(r.q);
+        if (r.p && qn > 0) r.p = String(Math.round(toNum(r.p) / qn * 10000) / 10000);
+      });
+    }
+    inv.unit = true;
+    return inv;
+  }
+  invoices.forEach(migrateInv);
+
+  // ===== قائمة أسماء النقشات المحفوظة =====
+  var NKEY = 'invoice-maker-names-v1';
+  var NTS_KEY = 'invoice-maker-names-ts';
+  var DEL_KEY = 'invoice-maker-deleted-v1';
+  var catalog = [];
+  var knownTypes = {};
+  var namesTs = Number(lsGet(NTS_KEY)) || 0;
+
+  // سعر القطعة لكل نقشة
+  var PKEY = 'invoice-maker-prices-v1';
+  var prices = {};
+  try {
+    var pp = JSON.parse(lsGet(PKEY) || '{}');
+    if (pp && typeof pp === 'object' && !Array.isArray(pp)) prices = pp;
+  } catch (e) {}
+  function priceKey(n) { return norm(n).toLowerCase(); }
+  function getPrice(n) { return prices[priceKey(n)]; }
+  function setPrice(n, v) {
+    var k = priceKey(n);
+    v = norm(v);
+    if (!k) return;
+    if (v) prices[k] = v; else delete prices[k];
+  }
+
+  function lsGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+
+  // الفواتير المحذوفة (لكي لا تعود من Drive بعد حذفها)
+  var deleted = {};
+  try {
+    var dd = JSON.parse(lsGet(DEL_KEY) || '{}');
+    if (dd && typeof dd === 'object' && !Array.isArray(dd)) deleted = dd;
+  } catch (e) {}
+  function saveDeleted() { lsSet(DEL_KEY, JSON.stringify(deleted)); }
+
+  function sameName(a, b) { return norm(a).toLowerCase() === norm(b).toLowerCase(); }
+  function hasName(n) {
+    for (var i = 0; i < catalog.length; i++) if (sameName(catalog[i], n)) return true;
+    return false;
+  }
+  function addName(n) {
+    n = norm(n);
+    if (!n || hasName(n)) return false;
+    catalog.push(n);
+    return true;
+  }
+  function addNamesFromRows(list) {
+    var added = false;
+    (list || []).forEach(function (r) { if (addName(r.n)) added = true; });
+    return added;
+  }
+  function saveNames(quiet) {
+    try {
+      window.localStorage.setItem(NKEY, JSON.stringify(catalog));
+      window.localStorage.setItem(PKEY, JSON.stringify(prices));
+    }
+    catch (e) { canStore = false; }
+    if (!quiet) {
+      namesTs = Date.now();
+      lsSet(NTS_KEY, String(namesTs));
+      scheduleSync();
+    }
+  }
+  function loadNames() {
+    var s = null;
+    try { s = window.localStorage.getItem(NKEY); } catch (e) { canStore = false; }
+    if (s !== null) {
+      try {
+        var d = JSON.parse(s);
+        if (Array.isArray(d)) {
+          d.forEach(function (n) { if (typeof n === 'string') addName(n); });
+          return;
+        }
+      } catch (e) {}
+    }
+    // أول تشغيل: نأخذ الأسماء من الفواتير المحفوظة سابقاً
+    invoices.forEach(function (inv) { addNamesFromRows(inv.rows); });
+    if (catalog.length) saveNames(true);
+  }
+  function rebuildKnownTypes() {
+    knownTypes = {};
+    invoices.forEach(function (inv) {
+      (inv.rows || []).forEach(function (r) {
+        var t = norm(r.t);
+        if (t) knownTypes[t] = 1;
+      });
+    });
+  }
+  loadNames();
+  rebuildKnownTypes();
+
+  function persistInvoices() {
+    memory = invoices;
+    try { window.localStorage.setItem(KEY, JSON.stringify(invoices)); }
+    catch (e) { canStore = false; }
+    rebuildKnownTypes();
+  }
+  function saveAll() {
+    persistInvoices();
+    scheduleSync();
+  }
+
+  function status(msg, warn) {
+    statusEl.textContent = msg;
+    statusEl.classList.toggle('warn', !!warn);
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () { statusEl.textContent = ''; }, 4000);
+  }
+
+  function val(id) { return document.getElementById(id).value; }
+
+  function collect() {
+    var list = [];
+    Array.prototype.forEach.call(rows.children, function (tr) {
+      var r = {
+        q: tr.querySelector('.qty input').value.trim(),
+        n: tr.querySelector('.name input').value.trim(),
+        t: tr.querySelector('.type input').value.trim(),
+        p: tr.querySelector('.price input').value.trim()
+      };
+      if (r.q || r.n || r.t || r.p) list.push(r);
+    });
+    return {
+      id: currentId || ('i' + Date.now().toString(36)),
+      shop: val('shop'),
+      no: val('invNo').trim(),
+      client: val('client').trim(),
+      date: val('invDate'),
+      notes: val('notes'),
+      withPrice: document.getElementById('priceToggle').checked,
+      unit: true,
+      rows: list
+    };
+  }
+
+  function fillRows(list) {
+    rows.innerHTML = '';
+    list.forEach(function (r) {
+      var tr = addRow();
+      tr.querySelector('.qty input').value = r.q || '';
+      tr.querySelector('.name input').value = r.n || '';
+      tr.querySelector('.type input').value = r.t || '';
+      tr.querySelector('.price input').value = r.p || '';
+    });
+    while (rows.children.length < START_ROWS) addRow();
+    refresh();
+  }
+
+  function indexOfId(id) {
+    for (var i = 0; i < invoices.length; i++) if (invoices[i].id === id) return i;
+    return -1;
+  }
+
+  function saveInvoice() {
+    var inv = collect();
+    if (!inv.rows.some(function (r) { return r.n || r.q; })) {
+      status('أضف نقشة واحدة على الأقل قبل الحفظ', true);
+      return;
+    }
+    inv.ts = Date.now();
+    var i = indexOfId(inv.id);
+    if (i > -1) invoices[i] = inv; else invoices.push(inv);
+    currentId = inv.id;
+    saveAll();
+    if (addNamesFromRows(inv.rows)) saveNames();
+    refresh();
+    status('تم حفظ الفاتورة' + (inv.no ? ' رقم ' + inv.no : ''));
+  }
+
+  function openInvoice(id) {
+    var i = indexOfId(id);
+    if (i < 0) return;
+    var inv = invoices[i];
+    currentId = inv.id;
+    document.getElementById('shop').value = inv.shop || '';
+    document.getElementById('invNo').value = inv.no || '';
+    document.getElementById('client').value = inv.client || '';
+    document.getElementById('invDate').value = inv.date || '';
+    updateHijri();
+    document.getElementById('notes').value = inv.notes || '';
+    var pt = document.getElementById('priceToggle');
+    pt.checked = !!inv.withPrice;
+    tbl.classList.toggle('with-price', pt.checked);
+    fillRows(inv.rows || []);
+    showView('invoice');
+  }
+
+  function norm(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  // زر بخطوتين للحذف
+  function confirmButton(label, action) {
+    var b = el('button', 'small-btn', label);
+    b.type = 'button';
+    var t = null;
+    b.addEventListener('click', function () {
+      if (!t) {
+        b.textContent = 'تأكيد؟';
+        b.classList.add('confirming');
+        t = setTimeout(function () {
+          t = null; b.textContent = label; b.classList.remove('confirming');
+        }, 3000);
+        return;
+      }
+      clearTimeout(t);
+      action();
+    });
+    return b;
+  }
+
+  // تحويل الأرقام العربية إلى إنجليزية للبحث
+  function latin(s) {
+    return String(s || '').replace(/[٠-٩]/g, function (d) { return d.charCodeAt(0) - 1632; });
+  }
+
+  function renderNames() {
+    var box = document.getElementById('nameChips');
+    box.innerHTML = '';
+    if (!catalog.length) {
+      box.appendChild(el('span', 'hint', 'لا توجد أسماء محفوظة بعد.'));
+      return;
+    }
+    catalog.slice().sort(function (a, b) { return a.localeCompare(b, 'ar'); }).forEach(function (n) {
+      var chip = el('span', 'chip');
+      chip.appendChild(el('span', '', n));
+      var pin = el('input');
+      pin.type = 'text';
+      pin.inputMode = 'decimal';
+      pin.placeholder = 'السعر';
+      pin.value = getPrice(n) || '';
+      pin.setAttribute('aria-label', 'سعر القطعة: ' + n);
+      pin.addEventListener('change', function () {
+        setPrice(n, pin.value);
+        saveNames();
+      });
+      pin.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); pin.blur(); }
+      });
+      chip.appendChild(pin);
+      var x = el('button', '', '×');
+      x.type = 'button';
+      x.title = 'حذف الاسم من القائمة';
+      x.setAttribute('aria-label', 'حذف ' + n);
+      x.addEventListener('click', function () {
+        for (var i = 0; i < catalog.length; i++) {
+          if (catalog[i] === n) { catalog.splice(i, 1); break; }
+        }
+        setPrice(n, '');
+        saveNames();
+        refresh();
+        renderNames();
+      });
+      chip.appendChild(x);
+      box.appendChild(chip);
+    });
+  }
+
+  function whatsappText(inv) {
+    var lines = [];
+    if (inv.shop) lines.push('*' + inv.shop + '*');
+    lines.push('فاتورة' + (inv.no ? ' رقم ' + inv.no : ''));
+    if (inv.client) lines.push('العميل: ' + inv.client);
+    if (inv.date) lines.push('التاريخ: ' + inv.date + (hijriText(inv.date) ? ' (' + hijriText(inv.date) + ')' : ''));
+    lines.push('');
+    var q = 0, p = 0, k = 0;
+    (inv.rows || []).forEach(function (r) {
+      if (!(r.q || r.n || r.t || r.p)) return;
+      k++;
+      var s = k + '. ' + (r.n || '-');
+      if (r.t) s += ' (' + r.t + ')';
+      if (r.q) s += ' - العدد: ' + r.q;
+      if (inv.withPrice && r.p) {
+        s += ' - السعر: ' + r.p;
+        if (r.q) s += ' - الإجمالي: ' + fmt(toNum(r.q) * toNum(r.p));
+      }
+      lines.push(s);
+      q += toNum(r.q);
+      if (r.q && r.p) p += toNum(r.q) * toNum(r.p);
+    });
+    lines.push('');
+    lines.push('إجمالي العدد: ' + fmt(q));
+    if (inv.withPrice) lines.push('الإجمالي: ' + fmt(p));
+    if (inv.notes && inv.notes.trim()) {
+      lines.push('');
+      lines.push('ملاحظات: ' + inv.notes.trim());
+    }
+    return lines.join('\n');
+  }
+
+  function renderSummary() {
+    var q = norm(document.getElementById('filter').value).toLowerCase();
+    var map = {};
+    invoices.forEach(function (inv) {
+      (inv.rows || []).forEach(function (r) {
+        var name = norm(r.n) || '(بدون اسم)';
+        var key = name.toLowerCase();
+        if (!map[key]) map[key] = { name: name, qty: 0, price: 0, priced: false, inv: {} };
+        map[key].qty += toNum(r.q);
+        if (inv.withPrice && r.q && r.p) {
+          map[key].price += toNum(r.q) * toNum(r.p);
+          map[key].priced = true;
+        }
+        map[key].inv[inv.id] = 1;
+      });
+    });
+    var arr = Object.keys(map).map(function (k) { return map[k]; })
+      .filter(function (g) { return !q || g.name.toLowerCase().indexOf(q) > -1; })
+      .sort(function (a, b) { return b.qty - a.qty; });
+
+    var body = document.getElementById('sumBody');
+    body.innerHTML = '';
+    var total = 0, totalPrice = 0, seen = {};
+    if (!arr.length) {
+      var tr0 = el('tr');
+      var td0 = el('td', 'empty', invoices.length
+        ? 'لا توجد نقشة بهذا الاسم.'
+        : 'لا توجد فواتير محفوظة بعد. احفظ فاتورة من تبويب «الفاتورة».');
+      td0.colSpan = 4;
+      tr0.appendChild(td0);
+      body.appendChild(tr0);
+    }
+    arr.forEach(function (g) {
+      var tr = el('tr');
+      tr.appendChild(el('td', '', g.name));
+      tr.appendChild(el('td', 'num', fmt(g.qty)));
+      tr.appendChild(el('td', 'num', String(Object.keys(g.inv).length)));
+      tr.appendChild(el('td', 'num', g.priced ? fmt(g.price) : '-'));
+      body.appendChild(tr);
+      total += g.qty;
+      totalPrice += g.price;
+      Object.keys(g.inv).forEach(function (id) { seen[id] = 1; });
+    });
+    document.getElementById('sumTotalQty').textContent = fmt(total);
+    document.getElementById('sumTotalPrice').textContent = fmt(totalPrice);
+    document.getElementById('sumTotalInv').textContent = String(Object.keys(seen).length);
+
+    var hint = 'يشمل ' + invoices.length + ' فاتورة محفوظة. الفواتير غير المحفوظة لا تدخل في الحساب.';
+    if (!canStore) hint += ' التخزين غير متاح في هذا العرض، لذا تبقى البيانات حتى إغلاق الصفحة فقط. افتح الملف في المتصفح مباشرة، أو استخدم النسخة الاحتياطية.';
+    document.getElementById('sumHint').textContent = hint;
+
+    // قائمة الفواتير المحفوظة
+    var sb = document.getElementById('savedBody');
+    sb.innerHTML = '';
+    if (!invoices.length) {
+      var tr1 = el('tr');
+      var td1 = el('td', 'empty', 'لا توجد فواتير محفوظة.');
+      td1.colSpan = 5;
+      tr1.appendChild(td1);
+      sb.appendChild(tr1);
+    }
+    var sq = latin(norm(val('savedSearch'))).toLowerCase();
+    var df = val('dateFrom'), dt = val('dateTo');
+    var shown = invoices.slice().reverse().sort(function (a, b) {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
+    }).filter(function (inv) {
+      if (sq && latin((inv.client || '') + ' ' + (inv.no || '')).toLowerCase().indexOf(sq) < 0) return false;
+      if (df && (!inv.date || inv.date < df)) return false;
+      if (dt && (!inv.date || inv.date > dt)) return false;
+      return true;
+    });
+    document.getElementById('savedCount').textContent = invoices.length
+      ? 'عرض ' + shown.length + ' من ' + invoices.length + ' فاتورة'
+      : '';
+    if (invoices.length && !shown.length) {
+      var tr2 = el('tr');
+      var td2 = el('td', 'empty', 'لا توجد فواتير مطابقة للبحث.');
+      td2.colSpan = 5;
+      tr2.appendChild(td2);
+      sb.appendChild(tr2);
+    }
+    renderNames();
+    shown.forEach(function (inv) {
+      var sum = 0;
+      (inv.rows || []).forEach(function (r) { sum += toNum(r.q); });
+      var tr = el('tr');
+      tr.appendChild(el('td', 'num', inv.no || '-'));
+      tr.appendChild(el('td', '', inv.client || '-'));
+      tr.appendChild(el('td', 'num', inv.date || '-'));
+      tr.appendChild(el('td', 'num', fmt(sum)));
+      var act = el('td', 'actions-cell');
+      var open = el('button', 'small-btn', 'فتح');
+      open.type = 'button';
+      open.addEventListener('click', function () { openInvoice(inv.id); });
+      act.appendChild(open);
+      act.appendChild(confirmButton('حذف', function () {
+        var i = indexOfId(inv.id);
+        if (i > -1) invoices.splice(i, 1);
+        deleted[inv.id] = Date.now();
+        saveDeleted();
+        if (currentId === inv.id) currentId = null;
+        saveAll();
+        renderSummary();
+      }));
+      tr.appendChild(act);
+      sb.appendChild(tr);
+    });
+  }
+
+  function showView(v) {
+    var s = v === 'summary';
+    sheet.hidden = s;
+    summaryView.hidden = !s;
+    document.getElementById('tabInvoice').classList.toggle('on', !s);
+    document.getElementById('tabSummary').classList.toggle('on', s);
+    Array.prototype.forEach.call(document.querySelectorAll('.inv-only'), function (e) {
+      e.hidden = s;
+    });
+    if (s) renderSummary();
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', saveInvoice);
+  document.getElementById('tabInvoice').addEventListener('click', function () { showView('invoice'); });
+  document.getElementById('tabSummary').addEventListener('click', function () { showView('summary'); });
+  document.getElementById('filter').addEventListener('input', renderSummary);
+
+  ['savedSearch', 'dateFrom', 'dateTo'].forEach(function (id) {
+    var e = document.getElementById(id);
+    e.addEventListener('input', renderSummary);
+    e.addEventListener('change', renderSummary);
+  });
+  document.getElementById('clearFilter').addEventListener('click', function () {
+    document.getElementById('savedSearch').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    renderSummary();
+  });
+
+  function addNewName() {
+    var inp = document.getElementById('newName');
+    var n = norm(inp.value);
+    var pv = norm(document.getElementById('newPrice').value);
+    if (!n) return;
+    var isNew = addName(n);
+    if (!isNew && !pv) { status('هذا الاسم موجود بالفعل', true); return; }
+    if (pv) setPrice(n, pv);
+    saveNames();
+    refresh();
+    inp.value = '';
+    document.getElementById('newPrice').value = '';
+    renderNames();
+    status(isNew ? 'تمت إضافة الاسم' : 'تم تحديث السعر');
+  }
+  document.getElementById('addNameBtn').addEventListener('click', addNewName);
+  ['newName', 'newPrice'].forEach(function (id) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); addNewName(); }
+    });
+  });
+
+  document.getElementById('waBtn').addEventListener('click', function () {
+    var inv = collect();
+    if (!inv.rows.some(function (r) { return r.n || r.q; })) {
+      status('أضف نقشة واحدة على الأقل قبل المشاركة', true);
+      return;
+    }
+    var url = 'https://wa.me/?text=' + encodeURIComponent(whatsappText(inv));
+    window.open(url, '_blank');
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify({ v: 3, invoices: invoices, names: catalog, prices: prices })], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'invoices-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  document.getElementById('importFile').addEventListener('change', function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var data = JSON.parse(rd.result);
+        var importedNames = [];
+        var importedPrices = {};
+        if (data && !Array.isArray(data) && Array.isArray(data.invoices)) {
+          importedNames = Array.isArray(data.names) ? data.names : [];
+          if (data.prices && typeof data.prices === 'object') importedPrices = data.prices;
+          data = data.invoices;
+        }
+        if (!Array.isArray(data)) throw new Error('bad');
+        var added = 0;
+        data.forEach(function (inv) {
+          if (!inv || !Array.isArray(inv.rows)) return;
+          if (!inv.id) inv.id = 'i' + Date.now().toString(36) + added;
+          migrateInv(inv);
+          inv.ts = Date.now();
+          delete deleted[inv.id];
+          var i = indexOfId(inv.id);
+          if (i > -1) invoices[i] = inv; else invoices.push(inv);
+          addNamesFromRows(inv.rows);
+          added++;
+        });
+        importedNames.forEach(function (n) { if (typeof n === 'string') addName(n); });
+        Object.keys(importedPrices).forEach(function (k) { if (!(k in prices)) prices[k] = importedPrices[k]; });
+        saveDeleted();
+        saveNames();
+        saveAll();
+        refresh();
+        renderSummary();
+        status('تم استيراد ' + added + ' فاتورة');
+      } catch (err) {
+        status('الملف غير صالح', true);
+      }
+      e.target.value = '';
+    };
+    rd.readAsText(f);
+  });
+
+  // ===== المزامنة مع Google Drive =====
+  var G_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  var G_FILE = 'invoice-maker-backup.json';
+  var G_ON_KEY = 'invoice-maker-gdrive-on';
+  var G_DIRTY_KEY = 'invoice-maker-gdrive-dirty';
+  var G_LAST_KEY = 'invoice-maker-gdrive-last';
+
+  var gOn = lsGet(G_ON_KEY) === '1';
+  var gDirty = lsGet(G_DIRTY_KEY) === '1';
+  var gLast = Number(lsGet(G_LAST_KEY)) || 0;
+  var gChanges = 0;
+  var gToken = null, gTokenExp = 0;
+  var gClient = null, gPending = null, gScriptP = null;
+  var gSyncing = false, gAgain = false, gTimer = null;
+  var gState = 'off', gExtra = '';
+
+  var gConnectBtn = document.getElementById('gConnectBtn');
+  var gSyncBtn = document.getElementById('gSyncBtn');
+  var gStatusEl = document.getElementById('gStatus');
+
+  function gRender() {
+    var cfg = !!GOOGLE_CLIENT_ID;
+    gConnectBtn.textContent = gOn ? 'فصل Google Drive' : 'ربط Google Drive';
+    gSyncBtn.hidden = !gOn;
+    var t = '';
+    if (!cfg) t = 'لم يُضبط معرّف Google بعد. افتح الملف وضع المعرّف في GOOGLE_CLIENT_ID أعلى الكود.';
+    else if (!gOn) t = 'غير مرتبط.';
+    else if (gState === 'syncing') t = 'جارٍ المزامنة…';
+    else if (gState === 'auth') t = 'انتهت صلاحية الدخول. اضغط «مزامنة الآن» لتسجيل الدخول من جديد.';
+    else if (gState === 'offline') t = 'لا يوجد اتصال. ستتم المزامنة عند عودته.';
+    else if (gState === 'error') t = 'تعذّرت المزامنة' + (gExtra ? ' (' + gExtra + ')' : '') + '.';
+    else if (gLast) t = 'مرتبط. آخر مزامنة: ' + new Date(gLast).toLocaleString('ar', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+    else t = 'مرتبط.';
+    gStatusEl.textContent = t;
+    gStatusEl.classList.toggle('warn', gOn && (gState === 'auth' || gState === 'error'));
+  }
+
+  function gLoadScript() {
+    if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+    if (gScriptP) return gScriptP;
+    gScriptP = new Promise(function (resolve, reject) {
+      var sc = document.createElement('script');
+      sc.src = 'https://accounts.google.com/gsi/client';
+      sc.async = true;
+      sc.onload = function () { resolve(); };
+      sc.onerror = function () { gScriptP = null; reject(new Error('offline')); };
+      document.head.appendChild(sc);
+    });
+    return gScriptP;
+  }
+
+  function gGetToken() {
+    if (gToken && Date.now() < gTokenExp - 60000) return Promise.resolve(gToken);
+    return gLoadScript().then(function () {
+      return new Promise(function (resolve, reject) {
+        gPending = { resolve: resolve, reject: reject };
+        if (!gClient) {
+          gClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: G_SCOPE,
+            callback: function (resp) {
+              var pend = gPending; gPending = null;
+              if (!pend) return;
+              if (resp && resp.access_token) {
+                gToken = resp.access_token;
+                gTokenExp = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+                pend.resolve(gToken);
+              } else {
+                pend.reject(new Error((resp && resp.error) || 'auth'));
+              }
+            },
+            error_callback: function (err) {
+              var pend = gPending; gPending = null;
+              if (pend) pend.reject(new Error((err && err.type) || 'auth'));
+            }
+          });
+        }
+        gClient.requestAccessToken({ prompt: '' });
+      });
+    });
+  }
+
+  function gFetch(url, opts, retried) {
+    return gGetToken().then(function (tok) {
+      var o = opts || {};
+      o.headers = Object.assign({}, o.headers || {}, { Authorization: 'Bearer ' + tok });
+      return fetch(url, o);
+    }).then(function (r) {
+      if (r.status === 401 && !retried) { gToken = null; return gFetch(url, opts, true); }
+      if (!r.ok) { var e = new Error('http ' + r.status); e.status = r.status; throw e; }
+      return r;
+    });
+  }
+
+  function gFindFile() {
+    var q = "name='" + G_FILE + "' and trashed=false";
+    var url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) +
+      '&fields=' + encodeURIComponent('files(id,modifiedTime)') +
+      '&orderBy=modifiedTime%20desc&pageSize=1&spaces=drive';
+    return gFetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      return d.files && d.files[0] ? d.files[0].id : null;
+    });
+  }
+
+  function gDownload(id) {
+    return gFetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media')
+      .then(function (r) { return r.text(); })
+      .then(function (t) { try { return JSON.parse(t); } catch (e) { return null; } });
+  }
+
+  function gPayload() {
+    return { v: 4, invoices: invoices, names: catalog, prices: prices, namesTs: namesTs, deleted: deleted };
+  }
+
+  function gUpload(id, obj) {
+    var body = JSON.stringify(obj);
+    if (id) {
+      return gFetch('https://www.googleapis.com/upload/drive/v3/files/' + id + '?uploadType=media', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body
+      });
+    }
+    var b = 'inv' + Date.now().toString(36);
+    var meta = JSON.stringify({ name: G_FILE, mimeType: 'application/json' });
+    var multi = '--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + meta +
+      '\r\n--' + b + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + body +
+      '\r\n--' + b + '--';
+    return gFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + b }, body: multi
+    });
+  }
+
+  // دمج نسخة Drive مع النسخة المحلية؛ يرجع true إذا تغيّر شيء محلياً
+  function gMerge(remote) {
+    if (!remote || typeof remote !== 'object') return false;
+    var changed = false;
+    var rInv = Array.isArray(remote.invoices) ? remote.invoices : [];
+    var rDel = remote.deleted && typeof remote.deleted === 'object' ? remote.deleted : {};
+
+    Object.keys(rDel).forEach(function (id) {
+      if (!(deleted[id] >= rDel[id])) { deleted[id] = rDel[id]; changed = true; }
+    });
+
+    var byId = {};
+    invoices.forEach(function (inv) { byId[inv.id] = inv; });
+    rInv.forEach(function (ri) {
+      if (!ri || !ri.id || !Array.isArray(ri.rows)) return;
+      migrateInv(ri);
+      var li = byId[ri.id];
+      if (!li || (ri.ts || 0) > (li.ts || 0)) { byId[ri.id] = ri; changed = true; }
+    });
+
+    function keep(m) { return !(deleted[m.id] && deleted[m.id] > (m.ts || 0)); }
+    var next = [], seen = {};
+    invoices.forEach(function (inv) {
+      seen[inv.id] = 1;
+      var m = byId[inv.id];
+      if (keep(m)) next.push(m); else changed = true;
+    });
+    rInv.forEach(function (ri) {
+      if (!ri || !ri.id || !Array.isArray(ri.rows) || seen[ri.id]) return;
+      seen[ri.id] = 1;
+      var m = byId[ri.id];
+      if (m && keep(m)) next.push(m);
+    });
+    invoices = next;
+
+    var rTs = Number(remote.namesTs) || 0;
+    if (Array.isArray(remote.names) && rTs > namesTs) {
+      catalog = remote.names.filter(function (n) { return typeof n === 'string' && norm(n); });
+      prices = remote.prices && typeof remote.prices === 'object' && !Array.isArray(remote.prices) ? remote.prices : {};
+      namesTs = rTs;
+      lsSet(NTS_KEY, String(namesTs));
+      saveNames(true);
+      changed = true;
+    }
+    return changed;
+  }
+
+  function gSync() {
+    if (!gOn || !GOOGLE_CLIENT_ID) return Promise.resolve();
+    if (gSyncing) { gAgain = true; return Promise.resolve(); }
+    if (!navigator.onLine) { gState = 'offline'; gRender(); return Promise.resolve(); }
+    gSyncing = true; gAgain = false;
+    gState = 'syncing'; gRender();
+    var startChanges = gChanges;
+    return gFindFile().then(function (id) {
+      if (!id) return { id: null, remote: null };
+      return gDownload(id).then(function (remote) { return { id: id, remote: remote }; });
+    }).then(function (res) {
+      if (gMerge(res.remote)) {
+        persistInvoices();
+        saveDeleted();
+        refresh();
+        renderSummary();
+      }
+      if (!(gDirty || !res.id || !res.remote)) return;
+      return gUpload(res.id, gPayload()).then(function () {
+        if (gChanges === startChanges) { gDirty = false; lsSet(G_DIRTY_KEY, '0'); }
+      });
+    }).then(function () {
+      gLast = Date.now();
+      lsSet(G_LAST_KEY, String(gLast));
+      gState = 'ok'; gExtra = '';
+    }).catch(function (err) {
+      var m = String((err && err.message) || err);
+      if (m === 'offline' || err instanceof TypeError) gState = 'offline';
+      else if (/popup|access_denied|^auth$|immediate|interaction|http 401/.test(m)) gState = 'auth';
+      else {
+        gState = 'error';
+        gExtra = m === 'http 403' ? 'فعّل Drive API في مشروعك' : m;
+      }
+    }).then(function () {
+      gSyncing = false;
+      gRender();
+      if (gAgain && gState === 'ok') gTimer = setTimeout(gSync, 500);
+    });
+  }
+
+  function scheduleSync() {
+    if (!gOn) return;
+    gDirty = true;
+    lsSet(G_DIRTY_KEY, '1');
+    gChanges++;
+    clearTimeout(gTimer);
+    gTimer = setTimeout(gSync, 1500);
+  }
+
+  gConnectBtn.addEventListener('click', function () {
+    if (!GOOGLE_CLIENT_ID) { gRender(); status('ضع معرّف Google في الملف أولاً', true); return; }
+    if (gOn) {
+      gOn = false;
+      lsSet(G_ON_KEY, '0');
+      try {
+        if (gToken && window.google && google.accounts) google.accounts.oauth2.revoke(gToken, function () {});
+      } catch (e) {}
+      gToken = null;
+      gState = 'off';
+      gRender();
+      status('تم فصل Google Drive. فواتيرك ما زالت محفوظة على الجهاز وفي Drive');
+      return;
+    }
+    gOn = true;
+    lsSet(G_ON_KEY, '1');
+    gDirty = true;
+    lsSet(G_DIRTY_KEY, '1');
+    gChanges++;
+    gState = 'syncing';
+    gRender();
+    gGetToken().then(function () { return gSync(); }).catch(function (err) {
+      var m = String((err && err.message) || err);
+      gOn = false;
+      lsSet(G_ON_KEY, '0');
+      gState = 'off';
+      gRender();
+      status(m === 'offline' ? 'لا يوجد اتصال بالإنترنت' : 'لم يكتمل الربط مع Google', true);
+    });
+  });
+
+  gSyncBtn.addEventListener('click', function () { gSync(); });
+
+  window.addEventListener('online', function () { if (gOn && gDirty) gSync(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && gOn && gToken &&
+        Date.now() < gTokenExp - 60000 && Date.now() - gLast > 60000) gSync();
+  });
+
+  gRender();
+  if (GOOGLE_CLIENT_ID) {
+    gLoadScript().catch(function () {});
+    if (gOn) gSync();
+  }
+
+  for (var i = 0; i < START_ROWS; i++) addRow();
+  setToday();
+  refresh();
+})();
+
+// ===== التثبيت والعمل بدون إنترنت =====
+(function () {
+  var deferred = null;
+  var btn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferred = e;
+    btn.hidden = false;
+  });
+  btn.addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; btn.hidden = true; });
+  });
+  window.addEventListener('appinstalled', function () { btn.hidden = true; });
+
+  try {
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+    // يطلب من المتصفح عدم حذف الفواتير المحفوظة عند امتلاء المساحة
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
